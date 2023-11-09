@@ -1,21 +1,18 @@
 use std::sync::Arc;
 
-use argon2::{
-    password_hash::{rand_core::OsRng, SaltString},
-    Argon2, PasswordHasher,
-};
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 
+use jsonwebtoken::{encode, EncodingKey, Header};
 use serde_json::{json, Value};
 
 use crate::{
     models::{
-        user::{RegisterUserSchema, User},
+        user::{LoginUserSchema, RegisterUserSchema, TokenClaims, User},
         userresponse::FilteredUser,
     },
     AppState,
 };
-
+use bcrypt::{hash, verify};
 pub async fn register_handler(
     State(data): State<Arc<AppState>>,
     Json(body): Json<RegisterUserSchema>,
@@ -42,25 +39,13 @@ pub async fn register_handler(
             return Err((StatusCode::CONFLICT, Json(error_response)));
         }
     }
-
-    let salt = SaltString::generate(&mut OsRng);
-    let hashed_password = Argon2::default()
-        .hash_password(body.password.as_bytes(), &salt)
-        .map_err(|e| {
-            let error_response = json!({
-                "status": "fail",
-                "message": format!("Database error: {}", e),
-            });
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response))
-        })
-        .map(|hash| hash.to_string())?;
-
+    let hashed = hash(body.password.as_bytes(), 5).expect("Error");
     let user = sqlx::query_as!(
         User,
         "INSERT INTO users (name,email,password) VALUES ($1, $2, $3) RETURNING *",
         body.name.to_string(),
         body.email.to_string().to_ascii_lowercase(),
-        hashed_password,
+        hashed,
     )
     .fetch_one(&data.db)
     .await
@@ -71,11 +56,89 @@ pub async fn register_handler(
         });
         (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response))
     })?;
+
+    let now = chrono::Utc::now();
+    let iat = now.timestamp() as usize;
+    let exp = 3600;
+    let claims: TokenClaims = TokenClaims {
+        sub: user.id.to_string(),
+        exp,
+        iat,
+    };
+
+    let token = encode(
+        &Header::default(),
+        &claims,
+        &EncodingKey::from_secret(data.env.jwt_secret.as_ref()),
+    )
+    .unwrap();
+
     let user_response = serde_json::json!({"status": "success","data": serde_json::json!({
-        "user": filter_user_record(&user)
+        "user": filter_user_record(&user),
+        "token":token
     })});
     Ok(Json(user_response))
 }
+
+pub async fn login_handler(
+    State(data): State<Arc<AppState>>,
+    Json(body): Json<LoginUserSchema>,
+) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
+    let user = sqlx::query_as!(
+        User,
+        "SELECT * FROM users WHERE email = $1",
+        body.email.to_ascii_lowercase()
+    )
+    .fetch_optional(&data.db)
+    .await
+    .map_err(|e| {
+        let error_response = json!({
+            "status": "error",
+            "message": format!("Database error: {}", e),
+        });
+        (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response))
+    })?
+    .ok_or_else(|| {
+        let error_response = json!({
+            "status": "fail",
+            "message": "Invalid email",
+        });
+        (StatusCode::BAD_REQUEST, Json(error_response))
+    })?;
+    let compare_pass = match verify(body.password.as_bytes(), &user.password) {
+        Ok(valid) => valid,
+        Err(_) => false,
+    };
+    if !compare_pass {
+        let error_response = serde_json::json!({
+            "status": "fail",
+            "message": "Invalid Credential"
+        });
+        return Err((StatusCode::BAD_REQUEST, Json(error_response)));
+    }
+    let now = chrono::Utc::now();
+    let iat = now.timestamp() as usize;
+    let exp = 3600;
+    let claims: TokenClaims = TokenClaims {
+        sub: user.id.to_string(),
+        exp,
+        iat,
+    };
+
+    let token = encode(
+        &Header::default(),
+        &claims,
+        &EncodingKey::from_secret(data.env.jwt_secret.as_ref()),
+    )
+    .unwrap();
+
+    let user_response = serde_json::json!({"status": "success","data": serde_json::json!({
+        "user": filter_user_record(&user),
+        "token":token
+    })});
+    Ok(Json(user_response))
+}
+
 fn filter_user_record(user: &User) -> FilteredUser {
     FilteredUser {
         id: user.id.to_string(),

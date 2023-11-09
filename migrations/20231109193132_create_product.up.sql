@@ -1,0 +1,7 @@
+-- Add up migration script here
+CREATE TABLE IF NOT EXISTS "products"(
+    id INTEGER NOT NULL PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    title VARCHAR(255) NOT NULL,
+    lob VARCHAR(100) NOT NULL,
+    status BOOLEAN DEFAULT FALSE
+)
