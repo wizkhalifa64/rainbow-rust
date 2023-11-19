@@ -8,10 +8,7 @@ use axum::{
 use serde_json::json;
 
 use crate::{
-    controller::{
-        productcontroller::create_product,
-        usercontroller::{login_handler, register_handler},
-    },
+    controller::usercontroller::{login_handler, register_handler},
     AppState,
 };
 pub async fn health_checker_handler() -> impl IntoResponse {
@@ -23,13 +20,23 @@ pub async fn health_checker_handler() -> impl IntoResponse {
     Json(json_message)
 }
 
-pub fn create_router(app_state: Arc<AppState>) -> Router {
+// pub fn create_router(app_state: Arc<AppState>) -> Router {
+//     let auth_route = Router::new()
+//         .route("/test", get(health_checker_handler))
+//         .route("/register", post(register_handler))
+//         .route("/login", post(login_handler))
+//         .route("/create-product", post(create_product))
+//         .route("/create-subproduct", post(create_subproduct));
+//     Router::new()
+//         .nest("/auth", auth_route)
+//         .with_state(app_state)
+// }
+
+pub fn auth_router(app_state: Arc<AppState>) -> Router {
     let auth_route = Router::new()
         .route("/test", get(health_checker_handler))
         .route("/register", post(register_handler))
         .route("/login", post(login_handler))
-        .route("/create-product", post(create_product));
-    Router::new()
-        .nest("/auth", auth_route)
-        .with_state(app_state)
+        .with_state(app_state);
+    auth_route
 }

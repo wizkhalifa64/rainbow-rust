@@ -13,7 +13,7 @@ use serde_json::json;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use tower_http::cors::CorsLayer;
 
-use crate::{config::config::Config, router::auth::create_router};
+use crate::{config::config::Config, router::create_router};
 pub mod config;
 pub mod controller;
 pub mod middleware;
