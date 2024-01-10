@@ -10,9 +10,7 @@ use serde_json::{json, Value};
 
 use crate::{
     middleware::validator::ValidatedJson,
-    models::product::{
-        GetProduct, GetProductCriteriaInput, Product, ProductInput, SubProduct, SubProductInput,
-    },
+    models::product::{GetProduct, Product, ProductInput, SubProduct, SubProductInput},
     AppState,
 };
 
@@ -86,7 +84,6 @@ pub async fn create_subproduct(
 
 pub async fn get_product(
     State(state): State<Arc<AppState>>,
-    ValidatedJson(body): ValidatedJson<GetProductCriteriaInput>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
     let products = sqlx::query_as!(
         GetProduct,
@@ -144,4 +141,25 @@ pub async fn get_product_by_id(
     })?;
 
     Ok(Json(json!({"data":products})))
+}
+
+pub async fn get_sub_product(
+    State(state): State<Arc<AppState>>,
+) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
+    let subproducts = sqlx::query_as!(
+        SubProduct,
+        r#"
+    SELECT * FROM subproducts
+    "#
+    )
+    .fetch_all(&state.db)
+    .await
+    .map_err(|e| {
+        let error_response = serde_json::json!({
+            "status": "fail",
+            "message": format!("Database error: {}", e),
+        });
+        (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response))
+    })?;
+    Ok(Json(json!({"data":subproducts})))
 }

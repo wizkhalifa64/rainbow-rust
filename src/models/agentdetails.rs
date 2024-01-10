@@ -17,3 +17,11 @@ pub struct AgentDetails {
     #[serde(rename = "updatedAt")]
     pub updated_at: Option<DateTime<Utc>>,
 }
+pub struct AgentRegisterIput {
+    pub name: String,
+    pub email: String,
+    pub phone: String,
+    pub photo: String,
+    pub verified: bool,
+    pub password: String,
+}
