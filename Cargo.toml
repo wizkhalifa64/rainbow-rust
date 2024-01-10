@@ -7,7 +7,6 @@ edition = "2021"
 
 [dependencies]
 axum = "0.7.3"
-axum = "0.7.3"
 bcrypt = "0.15.0"
 chrono = { version = "0.4.31", features = ["serde"] }
 dotenv = "0.15.0"
