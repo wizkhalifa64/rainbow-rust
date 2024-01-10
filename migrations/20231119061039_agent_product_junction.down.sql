@@ -1,2 +1,2 @@
 -- Add down migration script here
-DROP TABLE IF EXISTS "agent-subproduct";
+DROP TABLE IF EXISTS agent_subproduct;

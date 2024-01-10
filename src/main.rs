@@ -6,7 +6,7 @@ use axum::{
         HeaderValue, Method,
     },
     response::IntoResponse,
-    Json, Server,
+    serve, Json,
 };
 use dotenv::dotenv;
 use serde_json::json;
@@ -55,12 +55,11 @@ async fn main() {
         env: config.clone(),
     }))
     .layer(cors);
-
-    println!("🚀 server started successfuly");
-    Server::bind(&"0.0.0.0:8000".parse().unwrap())
-        .serve(app.into_make_service())
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
         .await
         .unwrap();
+    println!("🚀 server started successfuly");
+    serve(listener, app).await.unwrap();
 }
 pub async fn health_checker_handler() -> impl IntoResponse {
     const MESSAGE: &str = "Jwt auth";

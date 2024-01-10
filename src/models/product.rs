@@ -18,7 +18,7 @@ pub struct SubProduct {
     pub status: Option<bool>,
     pub alias: String,
     #[serde(rename = "productId")]
-    pub product_id: i32,
+    pub product_id: Option<i32>,
 }
 
 #[derive(Deserialize, Debug)]

@@ -4,11 +4,11 @@ use serde::Serialize;
 #[allow(non_snake_case)]
 #[derive(Debug, Serialize)]
 pub struct FilteredUser {
-    pub id: String,
+    pub id: i32,
     pub name: String,
     pub email: String,
     pub photo: String,
-    pub role: i16,
+    pub role: Option<i16>,
     pub verified: bool,
     pub createdAt: DateTime<Utc>,
     pub updatedAt: DateTime<Utc>,

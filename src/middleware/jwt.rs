@@ -2,25 +2,24 @@ use std::sync::Arc;
 
 use crate::{models::user::TokenClaims, AppState};
 use axum::{
-    extract::State,
-    http::{header, Request, StatusCode},
+    extract::{Request, State},
+    http::{header, StatusCode},
     middleware::Next,
     response::IntoResponse,
     Json,
 };
 use jsonwebtoken::{decode, DecodingKey, Validation};
 use serde::Serialize;
-use uuid::Uuid;
 
 #[derive(Debug, Serialize)]
 pub struct ErrorResponse {
     pub status: &'static str,
     pub message: String,
 }
-pub async fn auth<B>(
+pub async fn auth(
     State(state): State<Arc<AppState>>,
-    mut req: Request<B>,
-    next: Next<B>,
+    mut req: Request,
+    next: Next,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ErrorResponse>)> {
     let token = req
         .headers()
@@ -54,13 +53,6 @@ pub async fn auth<B>(
         (StatusCode::UNAUTHORIZED, Json(json_error))
     })?
     .claims;
-    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| {
-        let json_error = ErrorResponse {
-            status: "fail",
-            message: "Invalid token".to_string(),
-        };
-        (StatusCode::UNAUTHORIZED, Json(json_error))
-    });
-    req.extensions_mut().insert(user_id);
+    req.extensions_mut().insert(claims.sub);
     Ok(next.run(req).await)
 }

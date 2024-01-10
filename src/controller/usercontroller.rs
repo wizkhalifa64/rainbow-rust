@@ -141,7 +141,7 @@ pub async fn login_handler(
 
 fn filter_user_record(user: &User) -> FilteredUser {
     FilteredUser {
-        id: user.id.to_string(),
+        id: user.id,
         email: user.email.to_owned(),
         name: user.name.to_owned(),
         photo: user.photo.to_owned(),

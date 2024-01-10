@@ -1,12 +1,11 @@
 use axum::{
     async_trait,
-    extract::{rejection::JsonRejection, FromRequest},
-    http::{Request, StatusCode},
+    extract::{rejection::JsonRejection, FromRequest, Request},
+    http::StatusCode,
     response::{IntoResponse, Response},
     Json, RequestExt,
 };
 use serde::de::DeserializeOwned;
-// use serde::de::DeserializeOwned;
 use thiserror::Error;
 use validator::Validate;
 
@@ -14,16 +13,15 @@ use validator::Validate;
 pub struct ValidatedJson<T>(pub T);
 
 #[async_trait]
-impl<S, B, J> FromRequest<S, B> for ValidatedJson<J>
+impl<S, J> FromRequest<S> for ValidatedJson<J>
 where
-    B: Send + 'static,
     S: Send + Sync,
     J: DeserializeOwned + Validate + 'static,
-    Json<J>: FromRequest<(), B, Rejection = JsonRejection>,
+    Json<J>: FromRequest<S, Rejection = JsonRejection>,
 {
     type Rejection = ServerError;
 
-    async fn from_request(req: Request<B>, _state: &S) -> Result<Self, Self::Rejection> {
+    async fn from_request(req: Request, _state: &S) -> Result<Self, Self::Rejection> {
         let Json(data) = req.extract::<Json<J>, _>().await.map_err(|e| e)?;
         data.validate().map_err(|e| e)?;
         Ok(Self(data))
