@@ -14,21 +14,24 @@ pub struct Product {
 pub struct SubProduct {
     pub id: i32,
     pub title: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub status: Option<bool>,
+    pub status: bool,
     pub alias: String,
     #[serde(rename = "productId")]
     pub product_id: Option<i32>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Validate)]
 pub struct ProductInput {
+    #[validate(length(min = 1))]
     pub lob: String,
+    #[validate(length(min = 1))]
     pub title: String,
 }
 #[derive(Deserialize, Debug, Validate)]
 pub struct SubProductInput {
+    #[validate(length(min = 1))]
     pub alias: String,
+    #[validate(length(min = 1))]
     pub title: String,
     #[validate(range(min = 0))]
     pub product_id: i32,

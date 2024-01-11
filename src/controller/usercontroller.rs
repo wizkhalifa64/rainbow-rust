@@ -40,12 +40,29 @@ pub async fn register_handler(
         }
     }
     let hashed = hash(body.password.as_bytes(), 5).expect("Error");
-    let user = sqlx::query_as!(
+    sqlx::query_as!(
         User,
-        "INSERT INTO users (name,email,password) VALUES ($1, $2, $3) RETURNING *",
+        "INSERT INTO
+    tbl_users (
+        name,
+        email,
+        password,
+        role,
+        address,
+        area_list,
+        qualification,
+        employee_id
+    )
+VALUES
+    ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *",
         body.name.to_string(),
         body.email.to_string().to_ascii_lowercase(),
         hashed,
+        body.role,
+        body.address,
+        body.area_list,
+        body.qualification,
+        body.employee_id
     )
     .fetch_one(&data.db)
     .await
@@ -56,28 +73,12 @@ pub async fn register_handler(
         });
         (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response))
     })?;
+    let success_response = serde_json::json!({
+        "status": "success",
+        "message": "User created successfully"
+    });
 
-    let now = chrono::Utc::now();
-    let iat = now.timestamp() as usize;
-    let exp = 3600;
-    let claims: TokenClaims = TokenClaims {
-        sub: user.id.to_string(),
-        exp,
-        iat,
-    };
-
-    let token = encode(
-        &Header::default(),
-        &claims,
-        &EncodingKey::from_secret(data.env.jwt_secret.as_ref()),
-    )
-    .unwrap();
-
-    let user_response = serde_json::json!({"status": "success","data": serde_json::json!({
-        "user": filter_user_record(&user),
-        "token":token
-    })});
-    Ok(Json(user_response))
+    Ok((StatusCode::CREATED, Json(success_response)))
 }
 
 pub async fn login_handler(
@@ -86,7 +87,7 @@ pub async fn login_handler(
 ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
     let user = sqlx::query_as!(
         User,
-        "SELECT * FROM users WHERE email = $1",
+        "SELECT * FROM tbl_users WHERE email = $1",
         body.email.to_ascii_lowercase()
     )
     .fetch_optional(&data.db)
@@ -131,16 +132,7 @@ pub async fn login_handler(
         &EncodingKey::from_secret(data.env.jwt_secret.as_ref()),
     )
     .unwrap();
-
-    let user_response = serde_json::json!({"status": "success","data": serde_json::json!({
-        "user": filter_user_record(&user),
-        "token":token
-    })});
-    Ok(Json(user_response))
-}
-
-fn filter_user_record(user: &User) -> FilteredUser {
-    FilteredUser {
+    let user_details = FilteredUser {
         id: user.id,
         email: user.email.to_owned(),
         name: user.name.to_owned(),
@@ -149,7 +141,13 @@ fn filter_user_record(user: &User) -> FilteredUser {
         verified: user.verified,
         createdAt: user.created_at.unwrap(),
         updatedAt: user.updated_at.unwrap(),
-    }
+        areaList: user.area_list,
+    };
+    let user_response = serde_json::json!({"status": "success","data": serde_json::json!({
+        "user": user_details,
+        "token":token
+    })});
+    Ok(Json(user_response))
 }
 
 // pub async fn create_agent(State(data): State<Arc<AppState>>) {

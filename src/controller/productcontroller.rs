@@ -16,11 +16,11 @@ use crate::{
 
 pub async fn create_product(
     State(state): State<Arc<AppState>>,
-    Json(body): Json<ProductInput>,
+    ValidatedJson(body): ValidatedJson<ProductInput>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
     let saved_product = sqlx::query_as!(
         Product,
-        "INSERT INTO products (lob,title) VALUES ($1,$2) RETURNING *",
+        "INSERT INTO tbl_products (lob,title) VALUES ($1,$2) RETURNING *",
         body.lob.to_string(),
         body.title.to_string()
     )
@@ -64,7 +64,7 @@ pub async fn create_subproduct(
     }
     let save_subproduct = sqlx::query_as!(
         SubProduct,
-        "INSERT INTO subproducts (title,product_id,alias) VALUES ($1,$2,$3) RETURNING *",
+        "INSERT INTO tbl_subproducts (title,product_id,alias) VALUES ($1,$2,$3) RETURNING *",
         body.title.to_string(),
         body.product_id,
         body.alias.to_string()
@@ -93,8 +93,8 @@ pub async fn get_product(
         p.lob,
         p.status,
         COALESCE(jsonb_agg(sp) FILTER (WHERE sp.id IS NOT NULL),'[]') AS subproduct
-    FROM products p
-    LEFT JOIN subproducts sp ON p.id = sp.product_id
+    FROM tbl_products p
+    LEFT JOIN tbl_subproducts sp ON p.id = sp.product_id
     GROUP BY p.id
     "#,
     )
@@ -123,8 +123,8 @@ pub async fn get_product_by_id(
         p.lob,
         p.status,
         COALESCE(jsonb_agg(sp) FILTER (WHERE sp.id IS NOT NULL),'[]') AS subproduct
-    FROM products p
-    LEFT JOIN subproducts sp ON p.id = sp.product_id
+    FROM tbl_products p
+    LEFT JOIN tbl_subproducts sp ON p.id = sp.product_id
     WHERE p.id = $1
     GROUP BY p.id
     "#,
@@ -149,7 +149,7 @@ pub async fn get_sub_product(
     let subproducts = sqlx::query_as!(
         SubProduct,
         r#"
-    SELECT * FROM subproducts
+    SELECT * FROM tbl_subproducts
     "#
     )
     .fetch_all(&state.db)
