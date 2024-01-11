@@ -1,6 +1,7 @@
 use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use validator::Validate;
 
 #[derive(Debug, Deserialize, sqlx::FromRow, Serialize, Clone)]
 pub struct User {
@@ -16,9 +17,7 @@ pub struct User {
     pub area_list: Option<Value>,
     pub qualification: Option<Value>,
     pub employee_id: Option<String>,
-    #[serde(rename = "createdAt")]
     pub created_at: Option<DateTime<Utc>>,
-    #[serde(rename = "updatedAt")]
     pub updated_at: Option<DateTime<Utc>>,
 }
 
@@ -29,20 +28,30 @@ pub struct TokenClaims {
     pub exp: usize,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Validate)]
 pub struct RegisterUserSchema {
+    #[validate(length(min = 1))]
     pub name: String,
+    #[validate(length(min = 1))]
     pub email: String,
+    #[validate(length(min = 1))]
     pub password: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub role: Option<i16>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub address: Option<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub area_list: Option<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub qualification: Option<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub employee_id: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Validate)]
 pub struct LoginUserSchema {
+    #[validate(length(min = 1))]
     pub email: String,
+    #[validate(length(min = 1))]
     pub password: String,
 }

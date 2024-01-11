@@ -11,12 +11,9 @@ pub struct FilteredUser {
     pub photo: String,
     pub role: Option<i16>,
     pub verified: bool,
-    pub createdAt: DateTime<Utc>,
-    pub updatedAt: DateTime<Utc>,
     pub areaList: Option<Value>,
-}
-
-#[derive(Serialize, Debug)]
-pub struct UserData {
-    pub user: FilteredUser,
+    #[serde(rename = "createdAt")]
+    pub createdAt: DateTime<Utc>,
+    #[serde(rename = "updatedAt")]
+    pub updatedAt: DateTime<Utc>,
 }

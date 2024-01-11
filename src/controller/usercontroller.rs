@@ -6,6 +6,7 @@ use jsonwebtoken::{encode, EncodingKey, Header};
 use serde_json::{json, Value};
 
 use crate::{
+    middleware::validator::ValidatedJson,
     models::{
         user::{LoginUserSchema, RegisterUserSchema, TokenClaims, User},
         userresponse::FilteredUser,
@@ -15,17 +16,17 @@ use crate::{
 use bcrypt::{hash, verify};
 pub async fn register_handler(
     State(data): State<Arc<AppState>>,
-    Json(body): Json<RegisterUserSchema>,
+    ValidatedJson(body): ValidatedJson<RegisterUserSchema>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
     let user_exist: Option<bool> =
-        sqlx::query_scalar("SELECT EXISTS (SELECT 1 FROM users WHERE email = $1)")
+        sqlx::query_scalar("SELECT EXISTS (SELECT 1 FROM tbl_users WHERE email = $1)")
             .bind(body.email.to_owned().to_ascii_lowercase())
             .fetch_one(&data.db)
             .await
             .map_err(|e| {
                 let error_response = json!({
                     "status": "fail",
-                    "message": format!("Database error: {}", e),
+                    "message": format!("{}", e),
                 });
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response))
             })?;

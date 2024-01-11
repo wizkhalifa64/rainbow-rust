@@ -55,7 +55,7 @@ async fn main() {
         env: config.clone(),
     }))
     .layer(cors);
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:8000")
         .await
         .unwrap();
     println!("🚀 server started successfuly");
